@@ -33,13 +33,13 @@ function setup() {
 	var sphMate = new THREE.MeshBasicMaterial( {
 		wireframe: true,
 		transparent: true,
-		opacity: 0.1
+		opacity: 0.05
 	} );
 	var sphMesh = new THREE.Mesh( sphGeom, sphMate );
 	scene.add( sphMesh );
 
-	var ROUGHNESS = 0.7;
-	var SAMPLE_SIZE = 1024;
+	var ROUGHNESS = 0.5;
+	var SAMPLE_SIZE = 2048;
 
 	var Hpos = new Float32Array( SAMPLE_SIZE * 3 );
 
@@ -57,15 +57,37 @@ function setup() {
 		var cosTheta = Math.sqrt( ( 1 - y ) / ( 1 + ( a * a - 1.0 ) * y ) );
 		var sinTheta = Math.sqrt( 1.0 - cosTheta * cosTheta );
 
-		var offset = i * 3;
-		Hpos[ offset ] = sinTheta * Math.cos( phi ) * RADIUS;
-		Hpos[ offset + 1 ] = sinTheta * Math.sin( phi ) * RADIUS;
-		Hpos[ offset + 2 ] = cosTheta * RADIUS;
+		var Hx = sinTheta * Math.cos( phi );
+		var Hy = sinTheta * Math.sin( phi );
+		var Hz = cosTheta;
 
-		// // 2D
-		// Hpos[ offset ] = x * RADIUS;
-		// Hpos[ offset + 1 ] = y * RADIUS;
-		// Hpos[ offset + 2 ] = 0.0;
+		// transfrom from tangent space to normal N in world space
+		var N = new THREE.Vector3( 0, 0, 1 ).normalize();
+		var upVector = Math.abs( N.z ) < 0.999 ? new THREE.Vector3( 0, 0, 1 ) : new THREE.Vector3( 1, 0, 0 );
+		var TangentX = new THREE.Vector3();
+		TangentX.crossVectors( upVector, N );
+		var TangentY = new THREE.Vector3();
+		TangentY.crossVectors( N, TangentX );
+
+		TangentX.multiplyScalar( Hx );
+		TangentY.multiplyScalar( Hy );
+		N.multiplyScalar( Hz );
+
+		var H = new THREE.Vector3( 0, 0, 0 );
+		H.add( TangentX );
+		H.add( TangentY );
+		H.add( N );
+
+		H.multiplyScalar( RADIUS );
+		var offset = i * 3;
+		Hpos[ offset ] = H.x;
+		Hpos[ offset + 1 ] = H.y;
+		Hpos[ offset + 2 ] = H.z;
+
+		// var offset = i * 3;
+		// Hpos[ offset ] = sinTheta * Math.cos( phi ) * RADIUS;
+		// Hpos[ offset + 1 ] = sinTheta * Math.sin( phi ) * RADIUS;
+		// Hpos[ offset + 2 ] = cosTheta * RADIUS;
 
 	}
 
